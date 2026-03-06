@@ -1,0 +1,24 @@
+# Copy this to config.yaml and fill in your details
+# config.yaml is gitignored — your personal info stays private
+
+profile:
+  year: 3                          # your current year (1–4)
+  program: systems_design_engineering
+  school: university_of_waterloo
+  gender: female                   # female / male / any
+  citizenship: canadian            # canadian / permanent_resident / international
+  gpa: 3.5                         # your GPA (used to filter GPA-gated scholarships)
+  financial_need: false            # true = include need-based awards
+  first_gen: false                 # true = include first-generation student awards
+  visible_minority: false          # true = include equity-focused awards
+  leadership: true
+  stem_volunteering: true
+  target_industry: software        # software / hardware / sustainability / finance / etc.
+
+filters:
+  min_amount: 500                  # ignore scholarships under this amount
+  include_no_amount: true          # include scholarships where amount isn't listed
+
+notifications:
+  discord: true
+  github_pages: true

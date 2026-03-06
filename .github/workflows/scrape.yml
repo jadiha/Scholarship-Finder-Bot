@@ -16,6 +16,9 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      - name: Write private config
+        run: echo "${{ secrets.CONFIG_YAML }}" > config.yaml
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
