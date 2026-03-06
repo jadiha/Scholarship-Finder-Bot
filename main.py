@@ -42,20 +42,9 @@ def main():
     print(f"  [CuratedScraper] found {len(curated)}")
     all_raw.extend(curated)
 
-    # Engineers Canada needs a browser to follow detail page links
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page(
-            user_agent=(
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/120.0.0.0 Safari/537.36"
-            )
-        )
-        ec = EngineersCanadaScraper(config).scrape(page)
-        print(f"  [EngineersCanadaScraper] found {len(ec)}")
-        all_raw.extend(ec)
-        browser.close()
+    # Engineers Canada live scraper disabled — verified scholarships are in curated.py
+    # Re-enable once URL validation is added to filter out CMS false-positives
+    print("  [EngineersCanadaScraper] skipped (using curated list)")
 
     print(f"Total raw: {len(all_raw)}")
 
