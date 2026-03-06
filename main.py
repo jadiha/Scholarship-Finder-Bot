@@ -6,7 +6,6 @@ from playwright.sync_api import sync_playwright
 
 from scrapers.curated import CuratedScraper
 from scrapers.engineers_canada import EngineersCanadaScraper
-from scrapers.onwie import ONWiEScraper
 from filters import filter_and_score
 from notifier import post_to_discord, generate_dashboard
 
@@ -38,6 +37,12 @@ def main():
 
     all_raw = []
 
+    # Curated list needs no browser
+    curated = CuratedScraper(config).scrape()
+    print(f"  [CuratedScraper] found {len(curated)}")
+    all_raw.extend(curated)
+
+    # Engineers Canada needs a browser to follow detail page links
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page(
@@ -47,18 +52,9 @@ def main():
                 "Chrome/120.0.0.0 Safari/537.36"
             )
         )
-
-        scrapers = [
-            CuratedScraper(config),       # Verified list — always works
-            EngineersCanadaScraper(config),  # Found 94 results — fix selectors
-            ONWiEScraper(config),          # Found 30 results
-        ]
-
-        for scraper in scrapers:
-            results = scraper.scrape(page)
-            print(f"  [{scraper.__class__.__name__}] found {len(results)}")
-            all_raw.extend(results)
-
+        ec = EngineersCanadaScraper(config).scrape(page)
+        print(f"  [EngineersCanadaScraper] found {len(ec)}")
+        all_raw.extend(ec)
         browser.close()
 
     print(f"Total raw: {len(all_raw)}")
