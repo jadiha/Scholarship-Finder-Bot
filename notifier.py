@@ -45,11 +45,43 @@ def _days_label(deadline_iso: str | None, deadline_text: str) -> str:
         return deadline_text
 
 
+def _has_future_deadline(s: Scholarship) -> bool:
+    """Returns True only if the scholarship has a known, future deadline."""
+    if not s.deadline_iso:
+        return False
+    try:
+        return (datetime.fromisoformat(s.deadline_iso).date() - date.today()).days >= 0
+    except Exception:
+        return False
+
+
+def _post(webhook_url: str, payload: dict):
+    try:
+        r = requests.post(webhook_url, json=payload, timeout=10)
+        r.raise_for_status()
+    except Exception as e:
+        print(f"[Discord] Post failed: {e}")
+
+
 def post_to_discord(scholarships: list[Scholarship], webhook_url: str):
-    if not scholarships:
+    # Only ping for scholarships with a confirmed future deadline
+    pingable = [s for s in scholarships if _has_future_deadline(s)]
+    if not pingable:
+        print("[Discord] No scholarships with future deadlines to ping.")
         return
 
-    for s in scholarships:
+    urgent = [s for s in pingable if _urgency(s.deadline_iso) in ("critical", "high")]
+    regular = [s for s in pingable if s not in urgent]
+
+    # Alert header if anything is closing within 14 days
+    if urgent:
+        names = ", ".join(f"**{s.name}**" for s in urgent)
+        _post(webhook_url, {
+            "username": "Scholarship Finder",
+            "content": f":rotating_light: **CLOSING SOON** — {names}",
+        })
+
+    for s in urgent + regular:
         urgency = _urgency(s.deadline_iso)
         color = URGENCY_COLORS[urgency]
         days_label = _days_label(s.deadline_iso, s.deadline_text)
@@ -70,31 +102,20 @@ def post_to_discord(scholarships: list[Scholarship], webhook_url: str):
             "footer": {"text": "scholarship-finder • github.com/jadiha/-scholarship-finder"},
         }
 
-        if s.description:
+        if s.notes:
+            embed["description"] = s.notes[:200] + ("..." if len(s.notes) > 200 else "")
+        elif s.description:
             embed["description"] = s.description[:200] + ("..." if len(s.description) > 200 else "")
 
-        payload = {
-            "username": "Scholarship Finder",
-            "embeds": [embed],
-        }
+        _post(webhook_url, {"username": "Scholarship Finder", "embeds": [embed]})
 
-        try:
-            r = requests.post(webhook_url, json=payload, timeout=10)
-            r.raise_for_status()
-        except Exception as e:
-            print(f"[Discord] Failed to post '{s.name}': {e}")
-
-    # Summary message at the end
-    try:
-        requests.post(webhook_url, json={
-            "username": "Scholarship Finder",
-            "content": (
-                f"**{len(scholarships)} new scholarship(s) found** — "
-                f"sorted by match score. Check the dashboard for the full list."
-            ),
-        }, timeout=10)
-    except Exception:
-        pass
+    _post(webhook_url, {
+        "username": "Scholarship Finder",
+        "content": (
+            f"**{len(pingable)} new scholarship(s) with deadlines** found today. "
+            f"Check the dashboard for the full list including annual scholarships."
+        ),
+    })
 
 
 def generate_dashboard(all_scholarships: list[Scholarship], output_path: str = "docs/index.html"):

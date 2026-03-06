@@ -23,6 +23,15 @@ def is_eligible(s: Scholarship, profile: dict, filters: dict) -> bool:
     if "no_final_year" in tags and year == 4:
         return False
 
+    # Deadline gate — skip if deadline is known and already passed
+    if s.deadline_iso:
+        try:
+            days_left = (datetime.fromisoformat(s.deadline_iso).date() - date.today()).days
+            if days_left < 0:
+                return False
+        except Exception:
+            pass
+
     # Amount gate
     min_amount = filters.get("min_amount", 0)
     if s.amount_min > 0 and s.amount_min < min_amount:
